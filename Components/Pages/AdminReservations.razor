@@ -1,0 +1,72 @@
+@page "/admin/reservations"
+@using OtelUygulamasi.Data
+@using OtelUygulamasi.Models
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@using OtelUygulamasi.Services
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserSession Session
+@rendermode InteractiveServer
+
+<PageTitle>Rezervasyonlar</PageTitle>
+
+<div class="container py-4">
+    <h3 class="fw-bold">Yönetici - Rezervasyonlar</h3>
+    @if (!Session.IsAdmin)
+    {
+        <div class="alert alert-danger">Bu sayfaya erişim yetkiniz yok.</div>
+    }
+    else
+    {
+        <div class="table-responsive mt-3">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Oda</th>
+                        <th>Müşteri</th>
+                        <th>Giriş - Çıkış</th>
+                        <th>Kişiler</th>
+                        <th>Fiyat</th>
+                        <th>Ödeme</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in bookings)
+                    {
+                        <tr>
+                            <td>@b.Id</td>
+                            <td>@(b.Room?.Name ?? b.RoomId.ToString())</td>
+                            <td>@b.CustomerName<br /><small>@b.CustomerEmail</small></td>
+                            <td>@b.CheckInDate.ToShortDateString() - @b.CheckOutDate.ToShortDateString()</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(b.GuestsJson))
+                                {
+                                    var guests = JsonSerializer.Deserialize<System.Collections.Generic.List<System.Text.Json.JsonElement>>(b.GuestsJson);
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var g in guests ?? new())
+                                        {
+                                            <li>@(g.GetProperty("Name").GetString()) - @(g.TryGetProperty("Tckn", out var t) ? t.GetString() : "")</li>
+                                        }
+                                    </ul>
+                                }
+                            </td>
+                            <td>₺@b.TotalPrice.ToString("N0")</td>
+                            <td>@(b.IsPaid ? "Ödendi" : "Beklemede")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<RoomBooking> bookings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var ctx = DbFactory.CreateDbContext();
+        bookings = await ctx.Bookings.Include(b => b.Room).OrderByDescending(b => b.Id).ToListAsync();
+    }
+}

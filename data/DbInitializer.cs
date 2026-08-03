@@ -46,6 +46,16 @@ public static class DbInitializer
             context.Users.Add(admin);
         }
 
+        // Ensure Bookings table has GuestsJson column (added after initial schema)
+        try
+        {
+            context.Database.ExecuteSqlRaw("ALTER TABLE Bookings ADD COLUMN GuestsJson TEXT;");
+        }
+        catch
+        {
+            // ignore if column exists or operation not supported
+        }
+
         context.SaveChanges();
     }
 }

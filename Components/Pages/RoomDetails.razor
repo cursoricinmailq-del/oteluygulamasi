@@ -1,0 +1,165 @@
+@page "/room/{id:int}"
+@using OtelUygulamasi.Models
+@using OtelUygulamasi.Data
+@using System.Text.Json
+@using Microsoft.EntityFrameworkCore
+@using OtelUygulamasi.Services
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Nav
+@inject UserSession Session
+@rendermode InteractiveServer
+
+<PageTitle>Oda Detayları</PageTitle>
+
+<div class="container py-4">
+    <button class="btn btn-link mb-3" @onclick='() => Nav.NavigateTo("/hotel-rooms")'>← Geri</button>
+
+    @if (room == null)
+    {
+        <div class="alert alert-warning">Oda bulunamadı.</div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-md-6">
+                <img src="@(string.IsNullOrWhiteSpace(room.ImageUrl) ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800" : room.ImageUrl)" class="img-fluid rounded-4 shadow-sm" style="object-fit:cover; height:420px; width:100%;" />
+            </div>
+            <div class="col-md-6">
+                <h2 class="fw-bold">@room.Name</h2>
+                <p class="text-muted">@room.Occupancy kişi için ideal. ₺@room.RegularRate.ToString("N0") / gece</p>
+
+                <EditForm Model="bookingModel" OnValidSubmit="HandlePayment">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label">Giriş Tarihi</label>
+                        <InputDate class="form-control" @bind-Value="bookingModel.CheckInDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Çıkış Tarihi</label>
+                        <InputDate class="form-control" @bind-Value="bookingModel.CheckOutDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kişi Sayısı</label>
+                        <InputNumber class="form-control" @bind-Value="guestCount" Min="1" Max="100" />
+                        <div class="form-text">Maks: @room.Occupancy kişi</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Baş Müşteri Adı Soyadı</label>
+                        <InputText class="form-control" @bind-Value="bookingModel.CustomerName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-posta</label>
+                        <InputText class="form-control" @bind-Value="bookingModel.CustomerEmail" />
+                    </div>
+
+                    <h5 class="mt-3">Konuk Bilgileri</h5>
+                    @for (int i = 0; i < guestCount; i++)
+                    {
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <input class="form-control" placeholder="Ad Soyad" @bind="guestInputs[i].Name" />
+                            </div>
+                            <div class="col-5">
+                                <input class="form-control" placeholder="TCKN" @bind="guestInputs[i].Tckn" />
+                            </div>
+                        </div>
+                    }
+
+                    <h5 class="mt-3">Ödeme (Simülasyon)</h5>
+                    <div class="mb-3">
+                        <input class="form-control" placeholder="Kart Numarası" @bind="cardNumber" />
+                    </div>
+                    <div class="mb-3">
+                        <input class="form-control" placeholder="Kart Üzerindeki İsim" @bind="cardName" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Ödeme Yap (Simülasyon)</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">İptal</button>
+                    </div>
+                </EditForm>
+
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="alert alert-success mt-3">@message</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private HotelRoom? room;
+    private RoomBooking bookingModel = new();
+    private int guestCount = 1;
+    private List<GuestInput> guestInputs = new();
+    private string cardNumber = string.Empty;
+    private string cardName = string.Empty;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var ctx = DbFactory.CreateDbContext();
+        room = await ctx.HotelRooms.FindAsync(id);
+        bookingModel.RoomId = id;
+        bookingModel.CheckInDate = DateTime.Today;
+        bookingModel.CheckOutDate = DateTime.Today.AddDays(1);
+        guestInputs = new List<GuestInput> { new GuestInput() };
+    }
+
+    private void Cancel()
+    {
+        Nav.NavigateTo("/hotel-rooms");
+    }
+
+    private async Task HandlePayment()
+    {
+        if (room == null) return;
+        if (guestCount > room.Occupancy)
+        {
+            message = $"Maksimum {room.Occupancy} kişi rezervasyonu yapılabilir.";
+            return;
+        }
+
+        // ensure guestInputs length
+        while (guestInputs.Count < guestCount) guestInputs.Add(new GuestInput());
+        if (guestInputs.Count > guestCount) guestInputs = guestInputs.Take(guestCount).ToList();
+
+        // calculate total price
+        var nights = (bookingModel.CheckOutDate - bookingModel.CheckInDate).Days;
+        if (nights <= 0) nights = 1;
+        bookingModel.TotalPrice = nights * room.RegularRate;
+        bookingModel.IsPaid = true; // simulate payment success
+
+        // build guests JSON
+        var guestObjs = guestInputs.Select(g => new { Name = g.Name ?? string.Empty, Tckn = g.Tckn ?? string.Empty }).ToList();
+        bookingModel.GuestsJson = JsonSerializer.Serialize(guestObjs);
+
+        using var ctx = DbFactory.CreateDbContext();
+        ctx.Bookings.Add(bookingModel);
+        await ctx.SaveChangesAsync();
+
+        message = "Rezervasyonunuz başarıyla kaydedildi. Yönetim onayı bekleniyor.";
+
+        // navigate admin reservations if admin
+        if (Session.IsAdmin)
+        {
+            Nav.NavigateTo("/admin/reservations");
+        }
+        else
+        {
+            // small delay then go back
+            await Task.Delay(1200);
+            Nav.NavigateTo("/hotel-rooms");
+        }
+    }
+    public class GuestInput
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Tckn { get; set; } = string.Empty;
+    }
+}
