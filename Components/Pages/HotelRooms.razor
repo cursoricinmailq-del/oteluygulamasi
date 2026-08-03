@@ -2,7 +2,9 @@
 @using OtelUygulamasi.Models
 @using OtelUygulamasi.Data
 @using Microsoft.EntityFrameworkCore
+@using OtelUygulamasi.Services
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserSession Session
 @rendermode InteractiveServer
 
 <HeadContent>
@@ -31,36 +33,49 @@
 
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0 bg-light">
-                <div class="card-body p-4">
-                    <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Ekleyin</h5>
-                    <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
-                        <DataAnnotationsValidator />
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Oda Adı</label>
-                                <InputText class="form-control" placeholder="Örn: Royal Suite" @bind-Value="newRoom.Name" />
-                                <ValidationMessage For="@(() => newRoom.Name)" class="text-danger small mt-1" />
+            @if (Session.IsAdmin)
+            {
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Ekleyin (Admin)</h5>
+                        <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
+                            <DataAnnotationsValidator />
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small">Oda Adı</label>
+                                    <InputText class="form-control" placeholder="Örn: Royal Suite" @bind-Value="newRoom.Name" />
+                                    <ValidationMessage For="@(() => newRoom.Name)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small">Kapasite</label>
+                                    <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small">Fiyat (TL)</label>
+                                    <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label fw-semibold small">Görsel URL</label>
+                                    <InputText class="form-control" placeholder="https://..." @bind-Value="newRoom.ImageUrl" />
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-success w-100 fw-bold">💾 Kaydet</button>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold small">Kapasite</label>
-                                <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold small">Fiyat (TL)</label>
-                                <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold small">Görsel URL</label>
-                                <InputText class="form-control" placeholder="https://..." @bind-Value="newRoom.ImageUrl" />
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success w-100 fw-bold">💾 Kaydet</button>
-                            </div>
-                        </div>
-                    </EditForm>
+                        </EditForm>
+                    </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="card shadow-sm border-0 bg-light p-4">
+                    <div class="card-body">
+                        <h5 class="fw-bold">Oda eklemek için admin olmalısınız.</h5>
+                        <p class="text-muted">Rezervasyonlar sayfasında giriş yaparak admin rolüyle oturum açabilirsiniz.</p>
+                        <a class="btn btn-outline-primary" href="/reservations">Giriş / Rezervasyonlar</a>
+                    </div>
+                </div>
+            }
         </div>
 
         <div class="col-lg-4">
@@ -174,6 +189,12 @@
 
     private async Task HandleSubmit()
     {
+        if (!Session.IsAdmin)
+        {
+            ShowAlert("Yetkiniz yok. Sadece admin oda ekleyebilir.", "danger");
+            return;
+        }
+
         using var context = DbFactory.CreateDbContext();
         context.HotelRooms.Add(newRoom);
         await context.SaveChangesAsync();
