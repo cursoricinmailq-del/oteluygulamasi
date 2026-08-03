@@ -18,6 +18,39 @@
     }
     else
     {
+        <div class="card shadow-sm p-3 mb-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small">Durum</label>
+                    <select class="form-select" @bind="statusFilter">
+                        <option value="all">Tümü</option>
+                        <option value="waiting">Beklemede</option>
+                        <option value="confirmed">Onaylandı</option>
+                        <option value="cancelled">İptal</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Ödeme</label>
+                    <select class="form-select" @bind="paidFilter">
+                        <option value="all">Tümü</option>
+                        <option value="paid">Ödendi</option>
+                        <option value="unpaid">Beklemede</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Başlangıç</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Bitiş</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary mt-2" @onclick="LoadBookingsAsync">Filtrele</button>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive mt-3">
             <table class="table table-striped">
                 <thead>
@@ -29,6 +62,7 @@
                         <th>Kişiler</th>
                         <th>Fiyat</th>
                         <th>Ödeme</th>
+                        <th>İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,6 +87,20 @@
                             </td>
                             <td>₺@b.TotalPrice.ToString("N0")</td>
                             <td>@(b.IsPaid ? "Ödendi" : "Beklemede")</td>
+                            <td>
+                                @if (!b.IsCancelled)
+                                {
+                                    @if (!b.IsConfirmed)
+                                    {
+                                        <button class="btn btn-sm btn-success me-1" @onclick="() => Approve(b.Id)">Onayla</button>
+                                    }
+                                    <button class="btn btn-sm btn-danger" @onclick="() => Cancel(b.Id)">İptal</button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">İptal edildi</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -63,10 +111,58 @@
 
 @code {
     private List<RoomBooking> bookings = new();
+    private string statusFilter = "all";
+    private string paidFilter = "all";
+    private DateTime? fromDate;
+    private DateTime? toDate;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadBookingsAsync();
+    }
+
+    private async Task LoadBookingsAsync()
+    {
         using var ctx = DbFactory.CreateDbContext();
-        bookings = await ctx.Bookings.Include(b => b.Room).OrderByDescending(b => b.Id).ToListAsync();
+        var query = ctx.Bookings.Include(b => b.Room).AsQueryable();
+
+        if (statusFilter == "waiting") query = query.Where(b => !b.IsConfirmed && !b.IsCancelled);
+        if (statusFilter == "confirmed") query = query.Where(b => b.IsConfirmed && !b.IsCancelled);
+        if (statusFilter == "cancelled") query = query.Where(b => b.IsCancelled);
+
+        if (paidFilter == "paid") query = query.Where(b => b.IsPaid);
+        if (paidFilter == "unpaid") query = query.Where(b => !b.IsPaid);
+
+        if (fromDate.HasValue) query = query.Where(b => b.CheckInDate >= fromDate.Value);
+        if (toDate.HasValue) query = query.Where(b => b.CheckOutDate <= toDate.Value);
+
+        bookings = await query.OrderByDescending(b => b.Id).ToListAsync();
+        StateHasChanged();
+    }
+
+    private async Task Approve(int id)
+    {
+        using var ctx = DbFactory.CreateDbContext();
+        var b = await ctx.Bookings.FindAsync(id);
+        if (b != null)
+        {
+            b.IsConfirmed = true;
+            b.IsCancelled = false;
+            await ctx.SaveChangesAsync();
+            await LoadBookingsAsync();
+        }
+    }
+
+    private async Task Cancel(int id)
+    {
+        using var ctx = DbFactory.CreateDbContext();
+        var b = await ctx.Bookings.FindAsync(id);
+        if (b != null)
+        {
+            b.IsCancelled = true;
+            b.IsConfirmed = false;
+            await ctx.SaveChangesAsync();
+            await LoadBookingsAsync();
+        }
     }
 }
