@@ -19,4 +19,6 @@ public class RoomBooking
     public DateTime CheckOutDate { get; set; } = DateTime.Today.AddDays(1);
     public double TotalPrice { get; set; }
     public bool IsPaid { get; set; } = false;
+    public bool IsConfirmed { get; set; } = false;
+    public bool IsCancelled { get; set; } = false;
 }

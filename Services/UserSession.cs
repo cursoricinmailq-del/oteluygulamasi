@@ -9,12 +9,15 @@ public class UserSession
 
     public bool IsAdmin => Role == "Admin";
 
+    public event Action? OnChange;
+
     public void Login(string userName, string email, string role)
     {
         IsAuthenticated = true;
         UserName = userName;
         Email = email;
         Role = role;
+        OnChange?.Invoke();
     }
 
     public void Logout()
@@ -23,5 +26,6 @@ public class UserSession
         UserName = string.Empty;
         Email = string.Empty;
         Role = "Guest";
+        OnChange?.Invoke();
     }
 }
