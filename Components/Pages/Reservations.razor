@@ -32,7 +32,7 @@
                 <DataAnnotationsValidator />
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Ad Soyad</label>
+                        <label class="form-label fw-semibold">Kullanıcı Adı</label>
                         <InputText class="form-control" @bind-Value="loginModel.Name" />
                     </div>
                     <div class="col-md-4">
@@ -40,11 +40,8 @@
                         <InputText class="form-control" @bind-Value="loginModel.Email" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Rol Seçin</label>
-                        <select class="form-select" @bind="loginModel.Role">
-                            <option value="Customer">Müşteri</option>
-                            <option value="Admin">Admin</option>
-                        </select>
+                        <label class="form-label fw-semibold">Parola</label>
+                        <InputText type="password" class="form-control" @bind-Value="loginModel.Password" />
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-4 fw-bold">Giriş Yap</button>
@@ -54,55 +51,87 @@
     else
     {
         <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="card shadow-sm rounded-4 p-4 h-100">
-                    <h5 class="fw-semibold">Hoş geldiniz, @Session.UserName</h5>
-                    <p class="text-muted mb-2">Rolünüz: <strong>@Session.Role</strong></p>
-                    <p class="text-muted mb-0">Kayıtlı e-postanız: <strong>@Session.Email</strong></p>
+                <div class="col-lg-4">
+                    <div class="card shadow-sm rounded-4 p-4 h-100">
+                        <h5 class="fw-semibold">Hoş geldiniz, @Session.UserName</h5>
+                        <p class="text-muted mb-2">Rolünüz: <strong>@Session.Role</strong></p>
+                        <p class="text-muted mb-0">Kayıtlı e-postanız: <strong>@Session.Email</strong></p>
+                    </div>
                 </div>
-            </div>
-            <div class="col-lg-8">
-                <div class="card shadow-sm rounded-4 p-4 h-100">
-                    <h4 class="fw-bold mb-3">Aktif Rezervasyonlar</h4>
-                    @if (!reservations.Any())
-                    {
-                        <div class="alert alert-info mb-0">Henüz görüntülenecek rezervasyon bulunamadı.</div>
-                    }
-                    else
-                    {
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Oda</th>
-                                        <th>Tarih</th>
-                                        <th>Toplam</th>
-                                        <th>Durum</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var booking in reservations)
-                                    {
+                <div class="col-lg-8">
+                    <div class="card shadow-sm rounded-4 p-4 h-100">
+                        <h4 class="fw-bold mb-3">Aktif Rezervasyonlar</h4>
+                        @if (!reservations.Any())
+                        {
+                            <div class="alert alert-info mb-0">Henüz görüntülenecek rezervasyon bulunamadı.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0">
+                                    <thead>
                                         <tr>
-                                            <td>@booking.Room?.Name</td>
-                                            <td>@booking.CheckInDate.ToShortDateString() - @booking.CheckOutDate.ToShortDateString()</td>
-                                            <td>₺@booking.TotalPrice.ToString("N0")</td>
-                                            <td>@(booking.IsPaid ? "Ödendi" : "Beklemede")</td>
+                                            <th>Oda</th>
+                                            <th>Tarih</th>
+                                            <th>Toplam</th>
+                                            <th>Durum</th>
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var booking in reservations)
+                                        {
+                                            <tr>
+                                                <td>@booking.Room?.Name</td>
+                                                <td>@booking.CheckInDate.ToShortDateString() - @booking.CheckOutDate.ToShortDateString()</td>
+                                                <td>₺@booking.TotalPrice.ToString("N0")</td>
+                                                <td>@(booking.IsPaid ? "Ödendi" : "Beklemede")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
+
+            @if (Session.IsAdmin)
+            {
+                <div class="row g-4 mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm rounded-4 p-4">
+                            <h4 class="fw-bold mb-3">İletişim Mesajları (Admin)</h4>
+                            @if (!contactMessages.Any())
+                            {
+                                <div class="alert alert-secondary">Henüz mesaj yok.</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var m in contactMessages)
+                                    {
+                                        <div class="list-group-item mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>@m.Name</strong>
+                                                <small class="text-muted">@m.CreatedAt.ToLocalTime().ToString("g")</small>
+                                            </div>
+                                            <div class="small text-muted">@m.Email • @m.Subject</div>
+                                            <p class="mt-2 mb-1">@m.Message</p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
     }
 </div>
 
 @code {
     private LoginModel loginModel = new();
     private List<RoomBooking> reservations = new();
+    private List<OtelUygulamasi.Models.ContactMessage> contactMessages = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,7 +143,17 @@
 
     private async Task LoginUser()
     {
-        Session.Login(loginModel.Name, loginModel.Email, loginModel.Role);
+        // Hardcoded admin credentials: username 'admin' and password 'ritranks'
+        if (loginModel.Name == "admin" && loginModel.Password == "ritranks")
+        {
+            Session.Login("admin", loginModel.Email, "Admin");
+        }
+        else
+        {
+            // default to Customer role
+            Session.Login(loginModel.Name, loginModel.Email, "Customer");
+        }
+
         await LoadReservations();
     }
 
@@ -129,6 +168,10 @@
         }
 
         reservations = await query.OrderByDescending(b => b.CheckInDate).ToListAsync();
+        if (Session.IsAdmin)
+        {
+            contactMessages = await context.ContactMessages.OrderByDescending(m => m.CreatedAt).ToListAsync();
+        }
     }
 
     private void Logout()
@@ -141,6 +184,6 @@
     {
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Role { get; set; } = "Customer";
+        public string Password { get; set; } = string.Empty;
     }
 }
