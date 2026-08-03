@@ -3,6 +3,7 @@
 @using OtelUygulamasi.Services
 @inject UserSession Session
 @inject NavigationManager Nav
+@inject LocalizationService L
 
 <HeadContent>
     <title>OtelRezervasyon</title>
@@ -12,14 +13,14 @@
     <div class="container py-5">
         <div class="row align-items-center">
             <div class="col-lg-7">
-                <span class="badge bg-warning text-dark mb-3">Şimdi Keşfedin</span>
-                <h1 class="display-5 fw-bold">Lüks otel konforunu bir adım öne taşıyın</h1>
-                <p class="lead text-muted my-4">OtelRezervasyon ile özel odalar, hızlı rezervasyon ve profesyonel yönetim paneli tek noktada. Hemen giriş yaparak planınızı tamamlayın.</p>
+                <span class="badge bg-warning text-dark mb-3">@L["HeroDiscover"]</span>
+                <h1 class="display-5 fw-bold">@L["Welcome"]</h1>
+                <p class="lead text-muted my-4">@L["HeroSubtitle"]</p>
                 <div class="d-flex flex-column flex-sm-row gap-2">
                     <button class="btn btn-warning btn-lg" @onclick="OnHeroCallToAction">
-                        @(Session.IsAuthenticated ? "Rezervasyonlara Git" : "Giriş Yap")
+                        @(Session.IsAuthenticated ? @L["BookNow"] : @L["LoginButton"])
                     </button>
-                    <button class="btn btn-outline-light btn-lg" @onclick="GoToRooms">Oda Seçeneklerini Gör</button>
+                    <button class="btn btn-outline-light btn-lg" @onclick="GoToRooms">@L["ViewRooms"]</button>
                 </div>
             </div>
             <div class="col-lg-5 mt-4 mt-lg-0">
@@ -50,32 +51,32 @@
     <div class="container">
         <div class="row text-center mb-5">
             <div class="col">
-                <h2 class="fw-bold">OtelRezervasyon ile neler yapabilirsiniz?</h2>
-                <p class="text-muted">Rezervasyon, yönetim ve iletişim tek bir platformda.</p>
+                <h2 class="fw-bold">@L["FeaturesTitle"]</h2>
+                <p class="text-muted">@L["AnalyticsSummary"]</p>
             </div>
         </div>
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-body">
-                        <h5 class="card-title">Oda yönetimi</h5>
-                        <p class="card-text">Kolayca yeni oda ekleyin, düzenleyin ve mevcut oda bilgilerini yönetin.</p>
+                        <h5 class="card-title">@L["FeatureRoomManagement"]</h5>
+                        <p class="card-text">@L["FeatureRoomManagement"]</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-body">
-                        <h5 class="card-title">Rezervasyon takibi</h5>
-                        <p class="card-text">Müşteri rezervasyonlarını hızlıca görüntüleyin ve durumlarını yönetin.</p>
+                        <h5 class="card-title">@L["FeatureBookingTracking"]</h5>
+                        <p class="card-text">@L["FeatureBookingTracking"]</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-body">
-                        <h5 class="card-title">Mesajlaşma</h5>
-                        <p class="card-text">Müşteri sorularını alın, işaretleyin ve admin panelinden takip edin.</p>
+                        <h5 class="card-title">@L["FeatureMessaging"]</h5>
+                        <p class="card-text">@L["FeatureMessaging"]</p>
                     </div>
                 </div>
             </div>

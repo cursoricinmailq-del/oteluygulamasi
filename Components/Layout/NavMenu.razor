@@ -1,9 +1,10 @@
 ﻿@inject OtelUygulamasi.Services.UserSession Session
+@inject OtelUygulamasi.Services.LocalizationService L
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid d-flex justify-content-between align-items-center">
-        <a class="navbar-brand fw-bold" href="/">OtelRezervasyon</a>
-        <span class="navbar-text d-none d-md-inline text-white-75">Hızlı, şık ve güvenli otel rezervasyon platformu</span>
+        <a class="navbar-brand fw-bold" href="/">@L["AppTitle"]</a>
+        <span class="navbar-text d-none d-md-inline text-white-75">@L["AppSubtitle"]</span>
     </div>
 </div>
 
@@ -12,22 +13,25 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Anasayfa</NavLink>
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">@L["Home"]</NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="hotel-rooms">Otel Odaları</NavLink>
+            <NavLink class="nav-link" href="hotel-rooms">@L["Rooms"]</NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reservations">Rezervasyonlar</NavLink>
+            <NavLink class="nav-link" href="reservations">@L["Reservations"]</NavLink>
         </div>
         @if (Session.IsAdmin)
         {
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin">Yönetim</NavLink>
+                <NavLink class="nav-link" href="admin">@L["Admin"]</NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin-analytics">@L["Analytics"]</NavLink>
             </div>
         }
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="about">Hakkımızda / İletişim</NavLink>
+            <NavLink class="nav-link" href="about">@L["About"]</NavLink>
         </div>
     </nav>
 </div>

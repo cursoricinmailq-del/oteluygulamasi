@@ -1,0 +1,225 @@
+@page "/admin-analytics"
+@using OtelUygulamasi.Models
+@using OtelUygulamasi.Data
+@using Microsoft.EntityFrameworkCore
+@using OtelUygulamasi.Services
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserSession Session
+@inject LocalizationService L
+@rendermode InteractiveServer
+
+<HeadContent>
+    <title>@L["AnalyticsTitle"]</title>
+    <meta name="description" content="Admin analytics for booking revenue, occupancy, and message summaries." />
+</HeadContent>
+
+@if (!Session.IsAdmin)
+{
+    <div class="container py-5">
+        <div class="alert alert-danger">@L["AdminOnly"]</div>
+    </div>
+}
+else
+{
+    <div class="container py-5">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+            <div>
+                <h2 class="fw-bold">@L["AnalyticsTitle"]</h2>
+                <p class="text-muted mb-0">@L["AnalyticsSummary"]</p>
+            </div>
+            <div class="text-md-end">
+                <span class="badge bg-secondary py-2 px-3">@Session.UserName • @Session.Role</span>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="text-uppercase text-muted small mb-3">@L["AnalyticsRevenue"]</h5>
+                    <div class="display-6 fw-bold">₺@totalRevenue.ToString("N0")</div>
+                    <p class="text-muted small mb-0">@L["RevenueThisMonth"]</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="text-uppercase text-muted small mb-3">@L["AnalyticsBookings"]</h5>
+                    <div class="display-6 fw-bold">@totalBookings</div>
+                    <p class="text-muted small mb-0">@L["BookingStatus"]</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="text-uppercase text-muted small mb-3">@L["AnalyticsOccupiedRooms"]</h5>
+                    <div class="display-6 fw-bold">@occupiedRooms / @totalRooms</div>
+                    <p class="text-muted small mb-0">@L["AnalyticsOccupancyRate"] • @occupancyRate.ToString("0.0")%</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="fw-semibold mb-3">@L["BookingStatus"]</h5>
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-4 text-center">
+                                <div class="h3 mb-1">@confirmedBookings</div>
+                                <div class="text-muted small">@L["Confirmed"]</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-4 text-center">
+                                <div class="h3 mb-1">@pendingBookings</div>
+                                <div class="text-muted small">@L["Pending"]</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-4 text-center">
+                                <div class="h3 mb-1">@cancelledBookings</div>
+                                <div class="text-muted small">@L["AnalyticsCancelled"]</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow-sm rounded-4 p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-semibold mb-0">@L["AnalyticsMessageTags"]</h5>
+                        <span class="badge bg-primary">@messageTagSummaries.Sum(x => x.Count)</span>
+                    </div>
+                    @if (!messageTagSummaries.Any())
+                    {
+                        <div class="alert alert-secondary mb-0">@L["NoMessages"]</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var tag in messageTagSummaries)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">@tag.DisplayName</div>
+                                        <div class="small text-muted">@tag.Description</div>
+                                    </div>
+                                    <span class="badge bg-secondary rounded-pill">@tag.Count</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private int totalBookings;
+    private int confirmedBookings;
+    private int pendingBookings;
+    private int cancelledBookings;
+    private int occupiedRooms;
+    private int totalRooms;
+    private double totalRevenue;
+    private double occupancyRate;
+    private List<MessageTagSummary> messageTagSummaries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAnalytics();
+    }
+
+    private async Task LoadAnalytics()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        totalRooms = await context.HotelRooms.CountAsync();
+
+        var bookingList = await context.Bookings
+            .Where(b => !b.IsCancelled)
+            .ToListAsync();
+
+        totalBookings = bookingList.Count;
+        confirmedBookings = bookingList.Count(b => b.IsConfirmed);
+        pendingBookings = bookingList.Count(b => !b.IsConfirmed);
+        cancelledBookings = await context.Bookings.CountAsync(b => b.IsCancelled);
+        totalRevenue = bookingList.Sum(b => b.TotalPrice);
+
+        var today = DateTime.UtcNow.Date;
+        occupiedRooms = await context.Bookings
+            .Where(b => !b.IsCancelled && b.CheckInDate <= today && b.CheckOutDate > today)
+            .Select(b => b.RoomId)
+            .Distinct()
+            .CountAsync();
+
+        occupancyRate = totalRooms == 0 ? 0 : (double)occupiedRooms / totalRooms * 100;
+
+        var messages = await context.ContactMessages.ToListAsync();
+        messageTagSummaries = GetTagSummaries(messages);
+    }
+
+    private List<MessageTagSummary> GetTagSummaries(List<ContactMessage> messages)
+    {
+        var summaries = new Dictionary<string, MessageTagSummary>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var message in messages)
+        {
+            var tagKey = GetMessageTagKey(message);
+            if (!summaries.TryGetValue(tagKey, out var summary))
+            {
+                summary = new MessageTagSummary
+                {
+                    TagKey = tagKey,
+                    DisplayName = tagKey switch
+                    {
+                        "Important" => L["TagImportant"],
+                        "Reservation" => L["TagReservation"],
+                        "FollowUp" => L["TagFollowUp"],
+                        _ => L["TagOther"]
+                    },
+                    Description = tagKey switch
+                    {
+                        "Important" => "Acil talepler ve yüksek öncelikli mesajlar.",
+                        "Reservation" => "Rezervasyon soruları ve oda talepleri.",
+                        "FollowUp" => "Takip gerektiren müşteri talepleri.",
+                        _ => "Diğer mesajlar ve genel iletişimler."
+                    },
+                    Count = 0
+                };
+                summaries[tagKey] = summary;
+            }
+
+            summary.Count++;
+        }
+
+        if (!summaries.Any())
+        {
+            return new List<MessageTagSummary>();
+        }
+
+        return summaries.Values
+            .OrderByDescending(x => x.Count)
+            .ToList();
+    }
+
+    private string GetMessageTagKey(ContactMessage message)
+    {
+        var text = string.Join(" ", message.Subject, message.Message, message.Name, message.Email).ToLowerInvariant();
+        if (text.Contains("acil") || text.Contains("urgent") || text.Contains("important"))
+            return "Important";
+        if (text.Contains("rezervasyon") || text.Contains("reservation") || text.Contains("oda"))
+            return "Reservation";
+        if (text.Contains("takip") || text.Contains("follow"))
+            return "FollowUp";
+        return "Other";
+    }
+
+    private class MessageTagSummary
+    {
+        public string TagKey { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+}
