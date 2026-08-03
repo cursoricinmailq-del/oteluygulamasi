@@ -3,6 +3,7 @@
 @inject UserSession Session
 @inject NavigationManager Nav
 @inject LocalizationService L
+@inject UserAccountService AccountService
 
 <HeadContent>
     <title>Giriş Yap</title>
@@ -31,6 +32,9 @@
                         </div>
                         <button type="submit" class="btn btn-primary w-100">@L["LoginButton"]</button>
                     </EditForm>
+                        <div class="text-center mt-3">
+                            <a class="text-decoration-none" href="/register">@L["RegisterLinkText"]</a>
+                        </div>
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="alert alert-danger mt-3">@errorMessage</div>
@@ -45,7 +49,7 @@
     private LoginModel loginModel = new();
     private string? errorMessage;
 
-    private void HandleLogin()
+    private async Task HandleLogin()
     {
         if (string.IsNullOrWhiteSpace(loginModel.Name) || string.IsNullOrWhiteSpace(loginModel.Email))
         {
@@ -53,15 +57,14 @@
             return;
         }
 
-        if (loginModel.Name == "admin" && loginModel.Password == "ritranks")
+        var user = await AccountService.ValidateCredentialsAsync(loginModel.Name, loginModel.Password);
+        if (user == null)
         {
-            Session.Login("admin", loginModel.Email, "Admin");
-        }
-        else
-        {
-            Session.Login(loginModel.Name, loginModel.Email, "Customer");
+            errorMessage = L["LoginFailed"];
+            return;
         }
 
+        Session.Login(user.UserName, user.Email, user.Role);
         Nav.NavigateTo("/reservations");
     }
 

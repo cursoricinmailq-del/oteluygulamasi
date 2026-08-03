@@ -9,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddSingleton<UserSession>();
+builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddSingleton<LocalizationService>();
 
 // Add services to the container.
