@@ -1,6 +1,10 @@
 ﻿@page "/about"
 @using OtelUygulamasi.Services
+@using OtelUygulamasi.Models
+@using OtelUygulamasi.Data
+@using Microsoft.EntityFrameworkCore
 @inject UserSession Session
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @rendermode InteractiveServer
 
 <HeadContent>
@@ -90,10 +94,30 @@
     private ContactForm contactModel = new();
     private string? successMessage;
 
-    private void SendContactMessage()
+    private async Task SendContactMessage()
     {
-        successMessage = "Mesajınız alındı, en kısa sürede sizinle iletişime geçeceğiz.";
-        contactModel = new ContactForm();
+        // Save message to database so admin can review
+        try
+        {
+            using var context = DbFactory.CreateDbContext();
+            var msg = new ContactMessage
+            {
+                Name = contactModel.Name,
+                Email = contactModel.Email,
+                Subject = contactModel.Subject,
+                Message = contactModel.Message,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.ContactMessages.Add(msg);
+            await context.SaveChangesAsync();
+
+            successMessage = "Mesajınız alındı, en kısa sürede sizinle iletişime geçeceğiz.";
+            contactModel = new ContactForm();
+        }
+        catch
+        {
+            successMessage = "Mesajınız kaydedilemedi, lütfen tekrar deneyin.";
+        }
     }
 
     private class ContactForm
