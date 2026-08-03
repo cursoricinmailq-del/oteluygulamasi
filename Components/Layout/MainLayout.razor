@@ -38,6 +38,8 @@
 </div>
 
 @code {
+    private bool showLogin = false;
+
     protected override void OnInitialized()
     {
         Session.OnChange += StateHasChanged;
@@ -49,25 +51,13 @@
         Nav.NavigateTo("/");
     }
 
-    private void GoToReservations()
-    {
-        Nav.NavigateTo("/reservations");
-    }
-}
-
-@code {
-    private bool showLogin = false;
-}
-
-<LoginModal Visible="@showLogin" VisibleChanged="@(v => { showLogin = v; StateHasChanged(); })" />
-
-@functions {
     private void ShowLogin()
     {
         showLogin = true;
-        StateHasChanged();
     }
 }
+
+<LoginModal @bind-Visible="showLogin" />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
