@@ -37,7 +37,7 @@
             {
                 <div class="card shadow-sm border-0 bg-light">
                     <div class="card-body p-4">
-                        <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Ekleyin (Admin)</h5>
+                        <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Ekleyin (Admin) — Yönetim sayfasından de yönetebilirsiniz</h5>
                         <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
                             <DataAnnotationsValidator />
                             <div class="row g-3">
@@ -63,16 +63,6 @@
                                 </div>
                             </div>
                         </EditForm>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="card shadow-sm border-0 bg-light p-4">
-                    <div class="card-body">
-                        <h5 class="fw-bold">Oda eklemek için admin olmalısınız.</h5>
-                        <p class="text-muted">Rezervasyonlar sayfasında giriş yaparak admin rolüyle oturum açabilirsiniz.</p>
-                        <a class="btn btn-outline-primary" href="/reservations">Giriş / Rezervasyonlar</a>
                     </div>
                 </div>
             }
@@ -149,7 +139,10 @@
                                 <span class="badge bg-info text-dark">👥 @room.Occupancy Kişilik</span>
                                 <span class="badge bg-success">₺@room.RegularRate.ToString("N0")</span>
                             </div>
-                            <button class="btn btn-outline-danger btn-sm w-100 mt-auto" @onclick="() => DeleteRoom(room.Id)">🗑️ Sil</button>
+                            @if (Session.IsAdmin)
+                            {
+                                <button class="btn btn-outline-danger btn-sm w-100 mt-auto" @onclick="() => DeleteRoom(room.Id)">🗑️ Sil</button>
+                            }
                         </div>
                     </div>
                 </div>

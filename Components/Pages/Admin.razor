@@ -1,0 +1,261 @@
+@page "/admin"
+@using OtelUygulamasi.Models
+@using OtelUygulamasi.Data
+@using OtelUygulamasi.Services
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserSession Session
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<HeadContent>
+    <title>Yönetim</title>
+</HeadContent>
+
+<PageTitle>Yönetim Paneli</PageTitle>
+
+@if (!Session.IsAdmin)
+{
+    <div class="container py-5">
+        <div class="alert alert-danger">Bu sayfayı görüntüleme yetkiniz yok. Lütfen admin hesabıyla giriş yapın.</div>
+    </div>
+}
+else
+{
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">Yönetim Paneli</h2>
+            <div class="small text-muted">Hoş geldiniz, @Session.UserName</div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-semibold mb-3">Oda Ekle / Yönet</h5>
+                    <EditForm Model="newRoom" OnValidSubmit="HandleAddRoom">
+                        <DataAnnotationsValidator />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <InputText class="form-control" placeholder="Oda adı" @bind-Value="newRoom.Name" />
+                            </div>
+                            <div class="col-md-3">
+                                <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
+                            </div>
+                            <div class="col-md-3">
+                                <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
+                            </div>
+                            <div class="col-12">
+                                <InputText class="form-control" placeholder="Görsel URL" @bind-Value="newRoom.ImageUrl" />
+                            </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <button class="btn btn-success">Kaydet</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-semibold mb-3">İletişim Mesajları</h5>
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm" @bind="messageFilter">
+                            <option value="all">Tümü</option>
+                            <option value="unread">Okunmamış</option>
+                            <option value="read">Okunmuş</option>
+                        </select>
+                    </div>
+                    @if (!filteredMessages.Any())
+                    {
+                        <div class="alert alert-secondary">Mesaj yok.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var m in filteredMessages)
+                            {
+                                <div class="list-group-item mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>@m.Name</strong>
+                                        <small class="text-muted">@m.CreatedAt.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                    <div class="small text-muted">@m.Email • @m.Subject</div>
+                                    <p class="mt-2 mb-1">@m.Message</p>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-success" @onclick="() => ToggleRead(m.Id)">@(m.IsRead ? "Mark As Unread" : "Mark As Read")</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMessage(m.Id)">Sil</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm p-4">
+            <h5 class="fw-semibold mb-3">Rezervasyonlar</h5>
+            <div class="mb-3 d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm" @onclick="ExportReservationsCsv">CSV Dışa Aktar</button>
+            </div>
+            @if (!reservations.Any())
+            {
+                <div class="alert alert-secondary">Rezervasyon bulunamadı.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Oda</th>
+                                <th>Tarih</th>
+                                <th>Toplam</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var b in reservations)
+                            {
+                                <tr>
+                                    <td>@b.Room?.Name</td>
+                                    <td>@b.CheckInDate.ToShortDateString() - @b.CheckOutDate.ToShortDateString()</td>
+                                    <td>₺@b.TotalPrice.ToString("N0")</td>
+                                    <td>
+                                        @if (b.IsCancelled)
+                                        {
+                                            <span class="badge bg-danger">İptal</span>
+                                        }
+                                        else if (b.IsConfirmed)
+                                        {
+                                            <span class="badge bg-success">Onaylı</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">Beklemede</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-success" @onclick="() => ApproveBooking(b.Id)">Onayla</button>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => CancelBooking(b.Id)">İptal</button>
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => DownloadInvoice(b.Id)">Fatura</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private HotelRoom newRoom = new();
+    private List<HotelRoom> rooms = new();
+    private List<RoomBooking> reservations = new();
+    private List<ContactMessage> contactMessages = new();
+    private string messageFilter = "all";
+
+    private IEnumerable<ContactMessage> filteredMessages => contactMessages
+        .Where(m => messageFilter == "all" || (messageFilter == "unread" && !m.IsRead) || (messageFilter == "read" && m.IsRead));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAll();
+    }
+
+    private async Task LoadAll()
+    {
+        using var context = DbFactory.CreateDbContext();
+        rooms = await context.HotelRooms.ToListAsync();
+        reservations = await context.Bookings.Include(b => b.Room).OrderByDescending(b => b.CheckInDate).ToListAsync();
+        contactMessages = await context.ContactMessages.OrderByDescending(m => m.CreatedAt).ToListAsync();
+    }
+
+    private async Task HandleAddRoom()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.HotelRooms.Add(newRoom);
+        await context.SaveChangesAsync();
+        newRoom = new();
+        await LoadAll();
+    }
+
+    private async Task DeleteMessage(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var m = await context.ContactMessages.FindAsync(id);
+        if (m != null)
+        {
+            context.ContactMessages.Remove(m);
+            await context.SaveChangesAsync();
+            await LoadAll();
+        }
+    }
+
+    private async Task ToggleRead(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var m = await context.ContactMessages.FindAsync(id);
+        if (m != null)
+        {
+            m.IsRead = !m.IsRead;
+            await context.SaveChangesAsync();
+            await LoadAll();
+        }
+    }
+
+    private async Task ApproveBooking(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var b = await context.Bookings.FindAsync(id);
+        if (b != null)
+        {
+            b.IsConfirmed = true;
+            b.IsCancelled = false;
+            await context.SaveChangesAsync();
+            await LoadAll();
+        }
+    }
+
+    private async Task CancelBooking(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var b = await context.Bookings.FindAsync(id);
+        if (b != null)
+        {
+            b.IsCancelled = true;
+            b.IsConfirmed = false;
+            await context.SaveChangesAsync();
+            await LoadAll();
+        }
+    }
+
+    private async Task ExportReservationsCsv()
+    {
+        using var context = DbFactory.CreateDbContext();
+        var data = await context.Bookings.Include(b => b.Room).ToListAsync();
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Id,Room,CheckIn,CheckOut,Customer,Email,TotalPrice,Status");
+        foreach (var b in data)
+        {
+            var status = b.IsCancelled ? "Cancelled" : b.IsConfirmed ? "Confirmed" : "Pending";
+            csv.AppendLine($"{b.Id},\"{b.Room?.Name}\",{b.CheckInDate:yyyy-MM-dd},{b.CheckOutDate:yyyy-MM-dd},\"{b.CustomerName}\",\"{b.CustomerEmail}\",{b.TotalPrice},{status}");
+        }
+
+        await JS.InvokeVoidAsync("siteHelpers.downloadFile", "reservations.csv", csv.ToString(), "text/csv");
+    }
+
+    private async Task DownloadInvoice(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var b = await context.Bookings.Include(x => x.Room).FirstOrDefaultAsync(x => x.Id == id);
+        if (b == null) return;
+
+        var html = $"<html><body><h2>Fatura - Rezervasyon #{b.Id}</h2><p>Oda: {b.Room?.Name}</p><p>Müşteri: {b.CustomerName}</p><p>E-posta: {b.CustomerEmail}</p><p>Tarih: {b.CheckInDate:yyyy-MM-dd} - {b.CheckOutDate:yyyy-MM-dd}</p><p>Toplam: ₺{b.TotalPrice:N0}</p></body></html>";
+        await JS.InvokeVoidAsync("siteHelpers.downloadFile", $"invoice_{b.Id}.html", html, "text/html");
+    }
+}
