@@ -1,0 +1,73 @@
+@page "/login"
+@using OtelUygulamasi.Services
+@inject UserSession Session
+@inject NavigationManager Nav
+
+<HeadContent>
+    <title>Giriş Yap</title>
+</HeadContent>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm rounded-4 border-0">
+                <div class="card-body p-4">
+                    <h2 class="fw-bold mb-3 text-center">OtelRezervasyon Giriş</h2>
+                    <p class="text-muted text-center mb-4">Hesabınıza güvenli şekilde giriş yapın. Admin girişleri için kullanıcı adı <strong>admin</strong> ve parola <strong>ritranks</strong>.</p>
+                    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Kullanıcı Adı</label>
+                            <InputText class="form-control" @bind-Value="loginModel.Name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-posta</label>
+                            <InputText class="form-control" @bind-Value="loginModel.Email" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Parola</label>
+                            <InputText type="password" class="form-control" @bind-Value="loginModel.Password" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
+                    </EditForm>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3">@errorMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string? errorMessage;
+
+    private void HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(loginModel.Name) || string.IsNullOrWhiteSpace(loginModel.Email))
+        {
+            errorMessage = "Kullanıcı adı ve e-posta alanları zorunludur.";
+            return;
+        }
+
+        if (loginModel.Name == "admin" && loginModel.Password == "ritranks")
+        {
+            Session.Login("admin", loginModel.Email, "Admin");
+        }
+        else
+        {
+            Session.Login(loginModel.Name, loginModel.Email, "Customer");
+        }
+
+        Nav.NavigateTo("/reservations");
+    }
+
+    private class LoginModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}
