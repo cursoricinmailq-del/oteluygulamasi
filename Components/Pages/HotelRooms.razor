@@ -1,0 +1,124 @@
+@page "/hotel-rooms"
+@using OtelUygulamasi.Models
+@using OtelUygulamasi.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark m-0">🏨 Otel Odaları (Veritabanı Bağlantılı)</h2>
+            <p class="text-muted small m-0">Veriler SQLite veritabanında saklanmaktadır.</p>
+        </div>
+        <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">Toplam Oda: @rooms.Count</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert alert-@alertType alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <span>@alertMessage</span>
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    <!-- Oda Ekle Formu -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body p-4">
+            <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Kaydet</h5>
+            <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Oda Adı</label>
+                        <InputText class="form-control" placeholder="Örn: Royal Suite" @bind-Value="newRoom.Name" />
+                        <ValidationMessage For="@(() => newRoom.Name)" class="text-danger small mt-1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small">Kapasite</label>
+                        <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small">Fiyat (TL)</label>
+                        <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Görsel URL</label>
+                        <InputText class="form-control" placeholder="https://..." @bind-Value="newRoom.ImageUrl" />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100 fw-bold">💾 Kaydet</button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <!-- Oda Kartları -->
+    <div class="row g-4">
+        @foreach (var room in rooms)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+                    <img src="@(string.IsNullOrWhiteSpace(room.ImageUrl) ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500" : room.ImageUrl)" class="card-img-top" style="height: 200px; object-fit: cover;" />
+                    <div class="card-body d-flex flex-column p-4">
+                        <h5 class="card-title fw-bold text-dark">@room.Name</h5>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge bg-info text-dark">👥 @room.Occupancy Kişilik</span>
+                            <span class="text-success fw-bold fs-5 ms-auto">₺@room.RegularRate.ToString("N0")</span>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm w-100 mt-auto" @onclick="() => DeleteRoom(room.Id)">🗑️ Veritabanından Sil</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<HotelRoom> rooms = new();
+    private HotelRoom newRoom = new();
+    private string? alertMessage;
+    private string alertType = "success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoomsFromDb();
+    }
+
+    private async Task LoadRoomsFromDb()
+    {
+        using var context = DbFactory.CreateDbContext();
+        rooms = await context.HotelRooms.ToListAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.HotelRooms.Add(newRoom);
+        await context.SaveChangesAsync();
+
+        ShowAlert($"'{newRoom.Name}' veritabanına başarıyla kaydedildi!", "success");
+        newRoom = new();
+        await LoadRoomsFromDb();
+    }
+
+    private async Task DeleteRoom(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var room = await context.HotelRooms.FindAsync(id);
+        if (room != null)
+        {
+            context.HotelRooms.Remove(room);
+            await context.SaveChangesAsync();
+            ShowAlert("Oda veritabanından silindi.", "warning");
+            await LoadRoomsFromDb();
+        }
+    }
+
+    private void ShowAlert(string message, string type)
+    {
+        alertMessage = message;
+        alertType = type;
+    }
+}
