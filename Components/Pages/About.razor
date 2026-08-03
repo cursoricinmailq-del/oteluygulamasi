@@ -1,0 +1,106 @@
+﻿@page "/about"
+@using OtelUygulamasi.Services
+@inject UserSession Session
+@rendermode InteractiveServer
+
+<HeadContent>
+    <title>Hakkımızda ve İletişim</title>
+    <meta name="description" content="Otelimizin hikayesi, sunduğumuz hizmetler ve iletişim formu ile müşterilerimize hızlı destek." />
+</HeadContent>
+
+<div class="container py-5">
+    <div class="row g-4 mb-5">
+        <div class="col-lg-7">
+            <div class="card shadow-sm rounded-4 border-0 p-4 h-100">
+                <h2 class="fw-bold">Hakkımızda</h2>
+                <p class="text-muted">Türkiye’nin en modern ve profesyonel otel rezervasyon deneyimini sunuyoruz. Tatilinizi planlarken güvenilir fiyatlandırma, hızlı rezervasyon ve konforlu hizmeti bir arada bulacaksınız.</p>
+                <div class="row g-3 mt-4">
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <h5 class="fw-semibold">Güvenilir Hizmet</h5>
+                            <p class="small text-muted mb-0">Rezervasyon sürecinde şeffaf fiyatlama ve hızlı onay.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <h5 class="fw-semibold">Özel Deneyim</h5>
+                            <p class="small text-muted mb-0">Her oda tipi, tarih ve bütçeye uygun seçenekler.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <h5 class="fw-semibold">Mobil Dostu Tasarım</h5>
+                            <p class="small text-muted mb-0">Tüm cihazlarda hızlı ve kolay rezervasyon.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <h5 class="fw-semibold">Hızlı Destek</h5>
+                            <p class="small text-muted mb-0">İhtiyacınıza uygun oda önerileri ve iletişim.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card shadow-sm rounded-4 border-0 p-4 h-100 bg-primary text-white">
+                <h2 class="fw-bold">Bize Ulaşın</h2>
+                <p>Rehberlik, rezervasyon desteği veya iş birlikleri için aşağıdaki formu kullanabilirsiniz.</p>
+                <div class="mt-4">
+                    <p class="mb-1"><strong>Adres:</strong> İstanbul, Türkiye</p>
+                    <p class="mb-1"><strong>Telefon:</strong> +90 212 555 12 34</p>
+                    <p class="mb-0"><strong>E-posta:</strong> destek@otelrezervasyon.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm rounded-4 border-0 p-4">
+        <h3 class="fw-bold mb-3">İletişim Formu</h3>
+        <EditForm Model="contactModel" OnValidSubmit="SendContactMessage">
+            <DataAnnotationsValidator />
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">@successMessage</div>
+            }
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Adınız</label>
+                    <InputText class="form-control" @bind-Value="contactModel.Name" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">E-posta</label>
+                    <InputText class="form-control" @bind-Value="contactModel.Email" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Konu</label>
+                    <InputText class="form-control" @bind-Value="contactModel.Subject" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Mesajınız</label>
+                    <InputTextArea class="form-control" rows="5" @bind-Value="contactModel.Message" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4 fw-bold">Gönder</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private ContactForm contactModel = new();
+    private string? successMessage;
+
+    private void SendContactMessage()
+    {
+        successMessage = "Mesajınız alındı, en kısa sürede sizinle iletişime geçeceğiz.";
+        contactModel = new ContactForm();
+    }
+
+    private class ContactForm
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+}

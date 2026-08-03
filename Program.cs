@@ -1,13 +1,15 @@
-using OtelUygulamasi.Components;
+﻿using OtelUygulamasi.Components;
 using Microsoft.EntityFrameworkCore;
 using OtelUygulamasi.Data;
+using OtelUygulamasi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
 
 // Veritabanı Servisi
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddSingleton<UserSession>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

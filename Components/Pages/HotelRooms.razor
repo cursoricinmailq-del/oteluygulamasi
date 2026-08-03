@@ -1,17 +1,24 @@
-@page "/hotel-rooms"
+﻿@page "/hotel-rooms"
 @using OtelUygulamasi.Models
 @using OtelUygulamasi.Data
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @rendermode InteractiveServer
 
+<HeadContent>
+    <title>Otel Odaları</title>
+    <meta name="description" content="Türkiye otel fiyatlarına uygun oda seçeneklerini filtreleyin, fiyat karşılaştırması yapın ve kolayca yönetim paneline ekleyin." />
+</HeadContent>
+
+<PageTitle>Otel Odaları</PageTitle>
+
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-2 border-bottom">
         <div>
-            <h2 class="fw-bold text-dark m-0">🏨 Otel Odaları (Veritabanı Bağlantılı)</h2>
-            <p class="text-muted small m-0">Veriler SQLite veritabanında saklanmaktadır.</p>
+            <h2 class="fw-bold text-dark m-0">🏨 Otel Odaları</h2>
+            <p class="text-muted small m-0">Türkiye otel fiyatlarına göre hazırlandı, yönetimi kolay.</p>
         </div>
-        <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">Toplam Oda: @rooms.Count</span>
+        <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">Toplam Oda: @filteredRooms.Count()</span>
     </div>
 
     @if (!string.IsNullOrEmpty(alertMessage))
@@ -22,55 +29,116 @@
         </div>
     }
 
-    <!-- Oda Ekle Formu -->
-    <div class="card shadow-sm border-0 mb-4 bg-light">
-        <div class="card-body p-4">
-            <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Kaydet</h5>
-            <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
-                <DataAnnotationsValidator />
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Oda Adı</label>
-                        <InputText class="form-control" placeholder="Örn: Royal Suite" @bind-Value="newRoom.Name" />
-                        <ValidationMessage For="@(() => newRoom.Name)" class="text-danger small mt-1" />
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3 text-secondary">Yeni Oda Ekleyin</h5>
+                    <EditForm Model="newRoom" OnValidSubmit="HandleSubmit" FormName="AddRoomForm">
+                        <DataAnnotationsValidator />
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Oda Adı</label>
+                                <InputText class="form-control" placeholder="Örn: Royal Suite" @bind-Value="newRoom.Name" />
+                                <ValidationMessage For="@(() => newRoom.Name)" class="text-danger small mt-1" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold small">Kapasite</label>
+                                <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold small">Fiyat (TL)</label>
+                                <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold small">Görsel URL</label>
+                                <InputText class="form-control" placeholder="https://..." @bind-Value="newRoom.ImageUrl" />
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100 fw-bold">💾 Kaydet</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 p-4 h-100">
+                <h5 class="fw-bold mb-3">Oda Filtreleri</h5>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Oda Adı Ara</label>
+                    <input class="form-control" placeholder="Örn: Deluxe" @bind="searchTerm" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Kapasite</label>
+                    <select class="form-select" @bind="selectedOccupancy">
+                        <option value="0">Tüm kapasite</option>
+                        @for (int i = 1; i <= 10; i++)
+                        {
+                            <option value="@i">@i kişi</option>
+                        }
+                    </select>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold small">Min Fiyat</label>
+                        <select class="form-select" @bind="minPrice">
+                            <option value="0">Tümü</option>
+                            <option value="1800">₺1.800+</option>
+                            <option value="3000">₺3.000+</option>
+                            <option value="4500">₺4.500+</option>
+                        </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold small">Kapasite</label>
-                        <InputNumber class="form-control" @bind-Value="newRoom.Occupancy" />
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold small">Fiyat (TL)</label>
-                        <InputNumber class="form-control" @bind-Value="newRoom.RegularRate" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Görsel URL</label>
-                        <InputText class="form-control" placeholder="https://..." @bind-Value="newRoom.ImageUrl" />
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100 fw-bold">💾 Kaydet</button>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold small">Maks Fiyat</label>
+                        <select class="form-select" @bind="maxPrice">
+                            <option value="0">Tümü</option>
+                            <option value="3000">₺3.000</option>
+                            <option value="5000">₺5.000</option>
+                            <option value="8000">₺8.000</option>
+                        </select>
                     </div>
                 </div>
-            </EditForm>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Sırala</label>
+                    <select class="form-select" @bind="selectedSort">
+                        <option value="default">Varsayılan</option>
+                        <option value="priceAsc">Fiyata göre (artan)</option>
+                        <option value="priceDesc">Fiyata göre (azalan)</option>
+                    </select>
+                </div>
+                <button class="btn btn-outline-primary w-100 fw-bold" @onclick="ResetFilters">Filtreleri Temizle</button>
+            </div>
         </div>
     </div>
 
-    <!-- Oda Kartları -->
     <div class="row g-4">
-        @foreach (var room in rooms)
+        @if (!filteredRooms.Any())
         {
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
-                    <img src="@(string.IsNullOrWhiteSpace(room.ImageUrl) ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500" : room.ImageUrl)" class="card-img-top" style="height: 200px; object-fit: cover;" />
-                    <div class="card-body d-flex flex-column p-4">
-                        <h5 class="card-title fw-bold text-dark">@room.Name</h5>
-                        <div class="d-flex align-items-center mb-3">
-                            <span class="badge bg-info text-dark">👥 @room.Occupancy Kişilik</span>
-                            <span class="text-success fw-bold fs-5 ms-auto">₺@room.RegularRate.ToString("N0")</span>
+            <div class="col-12 text-center py-5">
+                <p class="fs-5 text-muted">Henüz eklenmiş oda bulunamadı veya seçtiğiniz filtreye uygun oda yok.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var room in filteredRooms)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                        <img src="@(string.IsNullOrWhiteSpace(room.ImageUrl) ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500" : room.ImageUrl)" class="card-img-top" style="height: 220px; object-fit: cover;" />
+                        <div class="card-body d-flex flex-column p-4">
+                            <h5 class="card-title fw-bold text-dark">@room.Name</h5>
+                            <p class="text-muted mb-3">@room.Occupancy kişi için şık ve ferah bir oda tasarımı.</p>
+                            <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+                                <span class="badge bg-info text-dark">👥 @room.Occupancy Kişilik</span>
+                                <span class="badge bg-success">₺@room.RegularRate.ToString("N0")</span>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm w-100 mt-auto" @onclick="() => DeleteRoom(room.Id)">🗑️ Sil</button>
                         </div>
-                        <button class="btn btn-outline-danger btn-sm w-100 mt-auto" @onclick="() => DeleteRoom(room.Id)">🗑️ Veritabanından Sil</button>
                     </div>
                 </div>
-            </div>
+            }
         }
     </div>
 </div>
@@ -80,6 +148,11 @@
     private HotelRoom newRoom = new();
     private string? alertMessage;
     private string alertType = "success";
+    private string searchTerm = string.Empty;
+    private int selectedOccupancy = 0;
+    private int minPrice = 0;
+    private int maxPrice = 0;
+    private string selectedSort = "default";
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,6 +164,13 @@
         using var context = DbFactory.CreateDbContext();
         rooms = await context.HotelRooms.ToListAsync();
     }
+
+    private IEnumerable<HotelRoom> filteredRooms => rooms
+        .Where(r => string.IsNullOrWhiteSpace(searchTerm) || r.Name.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase))
+        .Where(r => selectedOccupancy == 0 || r.Occupancy == selectedOccupancy)
+        .Where(r => minPrice == 0 || r.RegularRate >= minPrice)
+        .Where(r => maxPrice == 0 || r.RegularRate <= maxPrice)
+        .OrderBy(r => selectedSort == "priceAsc" ? r.RegularRate : selectedSort == "priceDesc" ? -r.RegularRate : r.Id);
 
     private async Task HandleSubmit()
     {
@@ -114,6 +194,15 @@
             ShowAlert("Oda veritabanından silindi.", "warning");
             await LoadRoomsFromDb();
         }
+    }
+
+    private void ResetFilters()
+    {
+        searchTerm = string.Empty;
+        selectedOccupancy = 0;
+        minPrice = 0;
+        maxPrice = 0;
+        selectedSort = "default";
     }
 
     private void ShowAlert(string message, string type)
