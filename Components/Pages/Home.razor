@@ -1,1 +1,117 @@
-﻿C:\Users\MOD
+﻿@page "/"
+@rendermode InteractiveServer
+@using OtelUygulamasi.Services
+@inject UserSession Session
+@inject NavigationManager Nav
+
+<HeadContent>
+    <title>OtelRezervasyon</title>
+</HeadContent>
+
+<section class="bg-dark text-white py-5">
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="badge bg-warning text-dark mb-3">Şimdi Keşfedin</span>
+                <h1 class="display-5 fw-bold">Lüks otel konforunu bir adım öne taşıyın</h1>
+                <p class="lead text-muted my-4">OtelRezervasyon ile özel odalar, hızlı rezervasyon ve profesyonel yönetim paneli tek noktada. Hemen giriş yaparak planınızı tamamlayın.</p>
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <button class="btn btn-warning btn-lg" @onclick="OnHeroCallToAction">
+                        @(Session.IsAuthenticated ? "Rezervasyonlara Git" : "Giriş Yap")
+                    </button>
+                    <button class="btn btn-outline-light btn-lg" @onclick="GoToRooms">Oda Seçeneklerini Gör</button>
+                </div>
+            </div>
+            <div class="col-lg-5 mt-4 mt-lg-0">
+                <div class="p-5 rounded-4 bg-secondary bg-opacity-10 border border-white border-opacity-10">
+                    <h2 class="fw-bold">Sakin Bir Kaçamak</h2>
+                    <p class="text-muted">Zarif odalar, şık ortak alanlar ve kişiye özel hizmetlerle tatilinizi unutulmaz kılın.</p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-4 shadow-sm">
+                                <h3 class="mb-1">30+</h3>
+                                <p class="mb-0 text-muted">Odalar</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-4 shadow-sm">
+                                <h3 class="mb-1">24/7</h3>
+                                <p class="mb-0 text-muted">Destek</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col">
+                <h2 class="fw-bold">OtelRezervasyon ile neler yapabilirsiniz?</h2>
+                <p class="text-muted">Rezervasyon, yönetim ve iletişim tek bir platformda.</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">Oda yönetimi</h5>
+                        <p class="card-text">Kolayca yeni oda ekleyin, düzenleyin ve mevcut oda bilgilerini yönetin.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">Rezervasyon takibi</h5>
+                        <p class="card-text">Müşteri rezervasyonlarını hızlıca görüntüleyin ve durumlarını yönetin.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">Mesajlaşma</h5>
+                        <p class="card-text">Müşteri sorularını alın, işaretleyin ve admin panelinden takip edin.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h3 class="fw-bold">Güvenli ve profesyonel</h3>
+                <p class="text-muted">Müşterilerinizin rezervasyon sürecini basitleştirin ve yönetim paneli ile tüm verileri kontrol edin.</p>
+            </div>
+            <div class="col-lg-6">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="p-4 bg-white rounded-4 shadow-sm text-center">
+                            <h4 class="mb-0">100+</h4>
+                            <p class="text-muted mb-0">Rezervasyon</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-4 bg-white rounded-4 shadow-sm text-center">
+                            <h4 class="mb-0">95%</h4>
+                            <p class="text-muted mb-0">Müşteri memnuniyeti</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private void OnHeroCallToAction() => Nav.NavigateTo(Session.IsAuthenticated ? "/reservations" : "/login");
+    private void GoToRooms() => Nav.NavigateTo("hotel-rooms");
+}
+
